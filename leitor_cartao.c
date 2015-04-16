@@ -22,6 +22,7 @@ int main(){
 	}
 
 	readCards(cards);
+	replaceAsterisk();
 	
 return 0;
 }
@@ -89,12 +90,24 @@ void replaceAsterisk(){
 	FILE* temp_1 = open_file(path_temp_1,"r");
 	
 	Card cards[NUM_CARDS];	
-	int i;
+	int i,countLine;
 	
 	for(i=0;i<NUM_CARDS;i++){
 		cards[i].msg = (char*)malloc(sizeof(char)*SIZE_MSG);
 	}
+	
+	for(countLine=0;countLine<NUM_CARDS;countLine++){
+		fscanf(temp_1,"%s ",cards[countLine].msg);	
+	}
+	
+	for(countLine=0;countLine<NUM_CARDS;countLine++){
+		printf("Lendo cartao replaceAsterisk %d: %s\n",countLine,cards[countLine].msg);
+	}
 
+	
+/*	int countLine;*/
+/*	for(countLine=0;countLine<NUM_CARDS;)
+		Utilizar regex pra fazer a localização dos asteriscos */
 	
 }
 
