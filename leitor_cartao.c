@@ -219,6 +219,6 @@ void printCards(){
 	for(i=0;i<NUM_CARDS;i++){
 		printf("Cartao %d: %s\n",i,cards[i].msg);
 	}
-
+	system("rm temp_1.txt temp_2.txt");
 }
 
