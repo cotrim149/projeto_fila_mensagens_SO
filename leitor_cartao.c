@@ -24,6 +24,7 @@ int main(){
 
 	readCards(cards);
 	replaceAsterisk();
+	printCards();
 	
 return 0;
 }
@@ -119,16 +120,16 @@ void regex_match_replace(char *regex, char* info, int card_number)
 		/* imprime uma string do erro */
 		er_error(count_match,reg);	
 
-	printf("\n********** CARTAO %d **********\n%s\n\n",card_number,info);
+//	printf("\n********** CARTAO %d **********\n%s\n\n",card_number,info);
 	count_match = start = 0;
 	/* casa a ER com o input argv[2] 
 	 * ^ marca início de linha */
 	error = regexec(&reg, info, 1, &match, 0);
 	/* tenta casar a ER mais vezes na string */
 	while(error == 0) {
-		printf("início da string de pesquisa atual no caractere %d\n",start);
-		printf("string de pesquisa = \"%s\"\n",info+start);
-		printf("casou do caractere = %d ao %d\n\n",match.rm_so,match.rm_eo);
+//		printf("início da string de pesquisa atual no caractere %d\n",start);
+//		printf("string de pesquisa = \"%s\"\n",info+start);
+//		printf("casou do caractere = %d ao %d\n\n",match.rm_so,match.rm_eo);
 		
 		int countChar=0;
 		for(countChar=0; countChar < (match.rm_eo - match.rm_so); countChar++){
@@ -155,7 +156,7 @@ void regex_match_replace(char *regex, char* info, int card_number)
 		error = regexec(&reg, info+start, 1, &match, REG_NOTBOL);
 	}
 	
-	if (start !=0) printf("Número total de casamentos = %d\n",count_match);
+//	if (start !=0) printf("Número total de casamentos = %d\n",count_match);
 
 	int num_times = count_match/2;	
 	if(count_match > 0)
@@ -182,23 +183,42 @@ void replaceAsterisk(){
 		fscanf(temp_1,"%s ",cards[countLine].msg);	
 	}
 	
-	for(countLine=0;countLine<NUM_CARDS;countLine++){
-		printf("Lendo cartao replaceAsterisk %d: %s\n",countLine,cards[countLine].msg);
-	}
-
-
+	fclose(temp_1);
+	
 	for(countLine=0;countLine<NUM_CARDS;countLine++){
 		regex_match_replace("\\*\\*", cards[countLine].msg,countLine);	
-		printf("Cartao modificado %d: %s \n",countLine,cards[countLine].msg);	
+//		printf("Cartao modificado %d: %s \n",countLine,cards[countLine].msg);	
 	}
 
+	char* path_temp_2 = "temp_2.txt";
+	FILE* temp_2 = open_file(path_temp_2,"w+");
+	
+	for(countLine=0;countLine<NUM_CARDS;countLine++){
+		char *temp_card = cards[countLine].msg;
+		fprintf(temp_2,"%s ",temp_card);
+	}
+	
+	fclose(temp_2);
 	
 }
 
 void printCards(){
-	/*	
-		Ler arquivo temporario 2
-		imprimir em tela
-	*/
+
+	char* path_temp_2 = "temp_2.txt";
+	FILE* temp_2 = open_file(path_temp_2,"r");
+	Card cards[NUM_CARDS];
+	int i, countLine;
+	for(i=0;i<NUM_CARDS;i++){
+		cards[i].msg = (char*)malloc(sizeof(char)*SIZE_MSG);
+	}
+
+	for(countLine=0;countLine<NUM_CARDS;countLine++){
+		fscanf(temp_2,"%s ",cards[countLine].msg);	
+	}
+
+	for(i=0;i<NUM_CARDS;i++){
+		printf("Cartao %d: %s\n",i,cards[i].msg);
+	}
+
 }
 
