@@ -1,5 +1,7 @@
 all:
-	mpicc send_msg.c -o prog
+	mpicc leitor_cartao.c -o prog
 
 run:
-	mpirun -np 2 prog
+	mpirun -np 3 prog
+
+
