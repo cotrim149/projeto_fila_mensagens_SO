@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <regex.h>
 #include "regex.h"
 
 /* mostra uma mensagem do erro usando regerror */

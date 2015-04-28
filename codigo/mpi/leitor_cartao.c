@@ -1,13 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <time.h>
 #include "mpi.h"
 
 #include "regex.h"
 
-#define NUM_CARDS 10
+#define MAX_CARDS 10
 #define SIZE_MSG 125
+#define READER 0
+#define REPLACER 1
+#define PRINTER 2
+
+#define NUM_CARDS 4
 
 MPI_Datatype cardDatatype;
 
@@ -22,8 +27,9 @@ MPI_Datatype createNewType();
 
 int main(int argc,char* argv[]){
 
+	srand(time(NULL));
+
 	int numtasks,rank;
-	int num_elements_msg = 1;
 	MPI_Status stats;
 
 	MPI_Init(&argc,&argv);
@@ -31,15 +37,16 @@ int main(int argc,char* argv[]){
 	MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 	
 	cardDatatype = createNewType();
-
+	
+		
 	switch(rank){
-	case 0:
+	case READER:
 		readCards();
 	break;
-	case 1:
+	case REPLACER:
 		replaceAsterisk();
 	break;
-	case 2:
+	case PRINTER:
 		printCards();
 	break;
 	}	
@@ -76,52 +83,30 @@ FILE* open_file(char* path_file, char* mode){
 	return file;
 }
 
-void sendMessage(char *msg, int dest, char* from, char* to){
+void getRandomMessages(Card *cards, Card *cards_from_file){
 
-	int tag = 0;
-	int num_elements_msg = 1;
-
-	MPI_Send(msg,num_elements_msg,cardDatatype,dest,tag,MPI_COMM_WORLD);
-	printf("\nProcesso %s enviou msg para processo %s.\n",from,to);
-
-}
-
-void readCards(){
-	
-	Card cards[NUM_CARDS];
+	int numbers[NUM_CARDS];	
 	int i;
-	
-	for(i=0;i<NUM_CARDS;i++){
-		cards[i].msg = (char*)malloc(sizeof(char)*SIZE_MSG);
+
+	for (i = 0; i < NUM_CARDS; i++) {     // fill array
+		numbers[i] = i;
 	}
 
-	// open file cards.txt
-	char path[] = "cards.txt";
-	FILE *cards_file = open_file(path,"r");
+	for (i = 0; i < NUM_CARDS; i++) {    // shuffle array
+		int temp = numbers[i];
+		int randomIndex = rand() % NUM_CARDS;
 
-	int countLine=0;
-	
-	for(countLine=0;countLine<NUM_CARDS;countLine++){
-		fscanf(cards_file,"%s \n",cards[countLine].msg);	
+		numbers[i] = numbers[randomIndex];
+		numbers[randomIndex] = temp;
 	}
-	
-	//leitura cartao
-	for(countLine=0;countLine<2;countLine++){
-//	for(countLine=0;countLine<NUM_CARDS;countLine++){
-		printf("Cartao %d: %s\n",countLine,cards[countLine].msg);
+
+	for (i = 0; i < NUM_CARDS; i++) {     // print array
+		printf("%d ", numbers[i]);
 	}
-	
-	fclose(cards_file);
-	int dest=1;
-	char *from = "0 - Read cards";
-	char *to = "1 - Replace asterisk";
-	
-	sendMessage(cards[0].msg,dest,from,to);	
-	sendMessage(cards[1].msg,dest,from,to);	
-			
+	printf("\n");
 	for(i=0;i<NUM_CARDS;i++){
-		free(cards[i].msg);
-	}
+		cards[i] = cards_from_file[numbers[i]]; 
+	}		
 
 }
 
@@ -135,42 +120,95 @@ void receiveMessage(char* msg,int source,char* from, char* to){
 	
 }
 
+void sendMessage(char *msg, int dest, char* from, char* to){
+
+	int tag = 0;
+	int num_elements_msg = 1;
+
+	MPI_Send(msg,num_elements_msg,cardDatatype,dest,tag,MPI_COMM_WORLD);
+	printf("\nProcesso %s enviou msg para processo %s.\n",from,to);
+
+}
+
+void readCards(){
+	
+	Card cards_from_file[MAX_CARDS];
+	int i;
+	
+	for(i=0;i<MAX_CARDS;i++){
+		cards_from_file[i].msg = (char*)malloc(sizeof(char)*SIZE_MSG);
+	}
+
+	// open file cards.txt
+	char path[] = "cards.txt";
+	FILE *cards_file = open_file(path,"r");
+
+	int countLine=0;
+	
+	for(countLine=0;countLine<MAX_CARDS;countLine++){
+		fscanf(cards_file,"%s \n",cards_from_file[countLine].msg);	
+	}
+
+	fclose(cards_file);
+	
+	// pega cartoes aleatorios
+	Card cards[NUM_CARDS];
+	getRandomMessages(cards,cards_from_file);
+		
+	//leitura cartao
+	for(countLine=0;countLine<NUM_CARDS;countLine++){
+		printf("Cartao %d: %s\n",countLine,cards[countLine].msg);
+	}
+	
+	int dest=1;
+	char *from = "0 - Read cards";
+	char *to = "1 - Replace asterisk";
+	
+	for(countLine=0;countLine<NUM_CARDS;countLine++){
+		sendMessage(cards[countLine].msg,dest,from,to);	
+	}
+	
+}
+
 void replaceAsterisk(){
 		
-	Card cards[NUM_CARDS];	
+	Card cards[MAX_CARDS];	
 	int i,countLine;
 	
 	//alocando memoria para variavel	
-	for(i=0;i<NUM_CARDS;i++){
+	for(i=0;i<MAX_CARDS;i++){
 		cards[i].msg = (char*)malloc(sizeof(char)*SIZE_MSG);
 	}
 
 	// Recebendo msg
 	int source = 0;
 	char* from = "1 - Replace Asterisk";
-	char* to = "2 - printCards";
-	receiveMessage(cards[0].msg,source,from,to);
-	receiveMessage(cards[1].msg,source,from,to);
+	char* to = "0 - Read Cards";
+	for(i=0;i<NUM_CARDS;i++){
+		receiveMessage(cards[i].msg,source,from,to);	
+	}
 
-	for(countLine=0;countLine<2;countLine++){
-//	for(countLine=0;countLine<NUM_CARDS;countLine++){
+	for(countLine=0;countLine<NUM_CARDS;countLine++){
+//	for(countLine=0;countLine<MAX_CARDS;countLine++){
 		regex_match_replace("\\*\\*", cards[countLine].msg,countLine);	
 //		printf("Cartao modificado %d: %s \n",countLine,cards[countLine].msg);	
 	}
 
 	int dest = 2;
 	from = "1 - Replace Asterisk";
-	to = "2 - printCards";
-	sendMessage(cards[0].msg,dest,from,to);
-	sendMessage(cards[1].msg,dest,from,to);
+	to = "2 - Print Cards";
+
+	for(i=0;i<NUM_CARDS;i++){
+		sendMessage(cards[i].msg,dest,from,to);
+	}
 	
 }
 
 void printCards(){
 		
-	Card cards[NUM_CARDS];
+	Card cards[MAX_CARDS];
 	int i, countLine;
-	for(i=0;i<NUM_CARDS;i++){
+	for(i=0;i<MAX_CARDS;i++){
 		cards[i].msg = (char*)malloc(sizeof(char)*SIZE_MSG);
 	}
 
@@ -178,12 +216,12 @@ void printCards(){
 	int source =1; 
 	char* from= "2 - Print cards";
 	char* to= "1 - Replace Asterisk";
-	receiveMessage(cards[0].msg, source,from,to);
-	receiveMessage(cards[1].msg, source,from,to);	
 
+	for(i=0;i<NUM_CARDS;i++){
+		receiveMessage(cards[i].msg, source,from,to);	
+	}
 
-//	for(i=0;i<NUM_CARDS;i++){
-	for(i=0;i<2;i++){
+	for(i=0;i<NUM_CARDS;i++){
 		printf("Cartao %d: %s\n",i,cards[i].msg);
 	}
 }
